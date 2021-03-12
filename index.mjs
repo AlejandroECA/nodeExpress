@@ -1,7 +1,11 @@
 import mongodb from 'mongodb'
 let MongoClient = mongodb.MongoClient
+
 import importassert from 'assert'
 let assert = importassert.strict
+
+import * as dboper from './operations.mjs'
+
 
 const url = 'mongodb://localhost:27017/'
 const dbname = 'nucampsite'
@@ -18,19 +22,34 @@ MongoClient.connect(url,{useUniFiedTopology: true},(err,client) => {
         assert.strictEqual(err, null);
         console.log('Dropped Collection', result);
 
-        const collection = db.collection('campsites');
-    
-        collection.insertOne({name: "Breadcrumb Trail Campground", description: "Test"},
-        (err, result) => {
-            assert.strictEqual(err, null);
-            console.log('Insert Document:', result.ops);
+        dboper.insertDocument(db, { name: "Breadcrumb Trail Campground", description: "Test"},
+        'campsites', result => {
+        console.log('Insert Document:', result.ops);
 
-            collection.find().toArray((err, docs) => {
-                assert.strictEqual(err, null);
+            dboper.findDocuments(db, 'campsites', docs => {
                 console.log('Found Documents:', docs);
 
-                client.close();
-            })
+                dboper.updateDocument(db, { name: "Breadcrumb Trail Campground" },
+                    { description: "Updated Test Description" }, 'campsites',
+                    result => {
+                        console.log('Updated Document Count:', result.result.nModified);
+
+                        dboper.findDocuments(db, 'campsites', docs => {
+                            console.log('Found Documents:', docs);
+                            
+                            dboper.removeDocument(db, { name: "Breadcrumb Trail Campground" },
+                                'campsites', result => {
+                                    console.log('Deleted Document Count:', result.deletedCount);
+
+                                    client.close();
+                            
+                                }
+                            )
+                            })
+                    })
+                }
+
+            )
         })   
     })
 })
